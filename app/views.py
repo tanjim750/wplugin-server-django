@@ -232,7 +232,7 @@ class FraudCheck(View):
             domain = data.get('domain', None)
             phone = data.get('phone',None)
 
-            print(license_key,domain,phone)
+            # print(license_key,domain,phone)
 
             if not (license_key and domain and phone):
                 return JsonResponse({
@@ -270,9 +270,9 @@ class FraudCheck(View):
             }
 
             res = requests.post(pathao_url, json=body, headers=headers)
-            # print(res)
 
             data = res.json().get("courierData", {})
+            # print(data)
             pathao = data.get('pathao')
             redx = data.get('redx')
             steadfast = data.get('steadfast')
