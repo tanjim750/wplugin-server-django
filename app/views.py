@@ -20,6 +20,8 @@ from app.couriers.redx import RedxAPI
 from app.couriers.steadfast import SteadFastAPI
 from app.couriers.pathao import PathaoAPI
 
+from app.event_manager import EventManager
+
 @csrf_exempt
 def verify_license(request):
     if request.method != 'POST':
@@ -35,9 +37,9 @@ def verify_license(request):
     try:
         license = License.objects.get(key=license_key,domain=domain)
         is_valid = license.is_valid()
-        return JsonResponse({'success':True,'valid': is_valid})
+        return JsonResponse({'success':True,'valid': is_valid},status=200)
     except License.DoesNotExist:
-        return JsonResponse({'success':True,'valid': False})
+        return JsonResponse({'success':False,'valid': False},status=400)
     
     
 @method_decorator(csrf_exempt, name='dispatch')
@@ -232,7 +234,7 @@ class FraudCheck(View):
             domain = data.get('domain', None)
             phone = data.get('phone',None)
 
-            # print(license_key,domain,phone)
+            print(license_key,domain,phone)
 
             if not (license_key and domain and phone):
                 return JsonResponse({
@@ -318,3 +320,55 @@ class FraudCheck(View):
             # traceback.print_exc()
 
         return stats
+    
+
+@method_decorator(csrf_exempt, name='dispatch')
+class TriggerFbEventView(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+
+            print(data)
+
+            license_key = data.get('license_key',None)
+            domain = data.get('domain', None)
+            pixel_id = data.get('pixel_id',None)
+            access_token = data.get('access_token',None)
+            test_event = data.get('test_event',None)
+            current_status = data.get('current_status',None)
+            old_status = data.get('old_status',None)
+            payload = data.get('details',None)
+
+            if not (license_key and domain and pixel_id and access_token):
+                return JsonResponse({
+                    'success':False,
+                    'error':'Missing required data.'
+                },status=400)
+
+            license = License.objects.filter(key=license_key,domain=domain)
+
+            if not license.exists():
+                return JsonResponse({
+                    'success':False,
+                    'error':'Invalid plugin licence key.'
+                },status=400)
+
+            if(current_status == old_status):
+                return JsonResponse({'success': False, 'error': 'Current and old order status cannot be same.'}, status=400)
+
+
+            manager = EventManager(
+                pixel_id=pixel_id,
+                access_token=access_token,
+                #test_code=test_event  # Optional for test events
+            )
+
+            result = manager.send_event(current_status,payload)
+            print(result)
+            return JsonResponse(result, status=200 if result['success'] else 200)
+
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON payload'}, status=400)
+        except Exception as e:
+            print(e)
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)

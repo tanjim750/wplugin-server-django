@@ -25,5 +25,5 @@ urlpatterns = [
     path('create-parcel/',CreateParcel.as_view()),
     path('track-parcel/',TrackParcel.as_view()),
     path('fraud-check/',FraudCheck.as_view()),
-
+    path('send-event/',TriggerFbEventView.as_view())
 ]

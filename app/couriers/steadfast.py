@@ -122,5 +122,7 @@ class SteadFastAPI:
             return 'Completed'
         elif status.lower() == 'cancelled' or 'cancelled' in status.lower():
             return 'Cancelled'
+        elif status.lower() == 'return' or 'return' in status.lower():
+            return 'Refunded'
         else:
             return 'Processing'
