@@ -1,10 +1,10 @@
 from django.http import JsonResponse, HttpResponse
-from .models import License
+from .models import License, FacebookEvent
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.views import View
 from django.forms.models import model_to_dict
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 
@@ -346,6 +346,13 @@ class TriggerFbEventView(View):
                 },status=400)
 
             license = License.objects.filter(key=license_key,domain=domain)
+            fb_event = FacebookEvent.objects.filter(text__iexact=current_status)
+
+            if not fb_event.exists():
+                return JsonResponse({
+                    'success':False,
+                    'error':'No standard event found.'
+                },status=400)
 
             if not license.exists():
                 return JsonResponse({
@@ -360,10 +367,11 @@ class TriggerFbEventView(View):
             manager = EventManager(
                 pixel_id=pixel_id,
                 access_token=access_token,
-                #test_code=test_event  # Optional for test events
+                test_code=test_event  # Optional for test events
             )
-
-            result = manager.send_event(current_status,payload)
+            
+            fb_event_name = fb_event.first().event_name
+            result = manager.send_event(fb_event_name,payload)
             print(result)
             return JsonResponse(result, status=200 if result['success'] else 200)
 

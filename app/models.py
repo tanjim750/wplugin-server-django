@@ -27,3 +27,11 @@ class PathaoCredential(models.Model):
 
     def is_token_valid(self):
         return self.access_token and self.token_expiry_at and self.token_expiry_at > timezone.now()
+    
+
+class FacebookEvent(models.Model):
+    text = models.CharField(max_length=255, unique=True)
+    event_name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.text
