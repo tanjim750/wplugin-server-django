@@ -85,19 +85,30 @@ WSGI_APPLICATION = 'server.wsgi.application'
 #     }
 # }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'zyncops',
+#         'USER': 'zyncops',
+#         'PASSWORD': 'triZync@2025',
+#         'HOST': '193.203.184.198',
+#         'PORT': '3306',
+#         'OPTIONS': {
+#             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+#             'ssl': {'fake_flag_to_enable_tls': True},
+#         }
+
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'u416410317_wplugin',
-        'USER': 'u416410317_trizync',
+        'NAME': 'zyncops',
+        'USER': 'zyncops',
         'PASSWORD': 'triZync@2025',
-        'HOST': '193.203.184.198',
+        'HOST': '127.0.0.1',
         'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'ssl': {'fake_flag_to_enable_tls': True},
-        }
-
     }
 }
 

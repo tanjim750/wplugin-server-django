@@ -1,5 +1,5 @@
 from django.http import JsonResponse, HttpResponse
-from .models import License, FacebookEvent
+from .models import *
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.views import View
@@ -15,12 +15,16 @@ import string
 import requests
 from datetime import datetime
 import traceback
+import threading
+import re
+
 
 from app.couriers.redx import RedxAPI
 from app.couriers.steadfast import SteadFastAPI
 from app.couriers.pathao import PathaoAPI
 
 from app.event_manager import EventManager
+from app.gemini_rag import Gemini_RAG
 
 @csrf_exempt
 def verify_license(request):
@@ -107,6 +111,8 @@ class CreateParcel(View):
         except Exception as e:
             print(e)
             return JsonResponse({'success':False,'error': f"Please provide valid data",}, status=400)
+        
+
         
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -233,8 +239,20 @@ class FraudCheck(View):
             license_key = data.get('license_key',None)
             domain = data.get('domain', None)
             phone = data.get('phone',None)
+            order = data.get('order',{})
+            # print(order)
 
-            print(license_key,domain,phone)
+            if order:
+                name = order['billing'].get('first_name', '') + ' ' + order['billing'].get('last_name', '')
+                address = order['billing'].get('address_1', '')
+                items = order.get('items', [])
+
+                # print(name)
+                if phone and address and name:
+                    thread1 = threading.Thread(target=self.save_customer, args=(name,phone,address,items))
+                    thread1.start()
+
+            # print(license_key,domain,phone)
 
             if not (license_key and domain and phone):
                 return JsonResponse({
@@ -255,7 +273,24 @@ class FraudCheck(View):
             return JsonResponse(response)
         
         except Exception as e:
+            print(e)
             return JsonResponse({'success':False,'error': f"Sorry, Something went worng."}, status=400)
+        
+    
+    def save_customer(self,name,phone,address,items):
+        customer = Customer.objects.filter(phone=phone)
+
+        if customer.exists():
+            return
+        
+        Customer.objects.create(
+            name=name,
+            phone=phone,
+            address=address,
+            items = items
+        )
+
+        return
         
     def fetch_courier_stats(self,phone_number):
         formatted_phone:str = phone_number.strip()
@@ -380,3 +415,183 @@ class TriggerFbEventView(View):
         except Exception as e:
             print(e)
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+class UserMessageExtractor:
+    # Optional: Define known service keywords for extraction
+    SERVICE_KEYWORDS = TrizyncService.objects.all().values_list('name',flat=True)
+
+    def __init__(self, message_text):
+        self.text = message_text.lower()
+
+    def extract_email(self):
+        match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', self.text)
+        return match.group(0) if match else None
+
+    def extract_phone(self):
+        match = re.search(r'(\+?\d[\d\s\-\(\)]{7,20})', self.text)
+        return match.group(0) if match else None
+
+    def extract_budget(self):
+        # Match currency followed by numbers, or vice versa (e.g., 5k, $5000, ৳1000)
+        match = re.search(r'(?:(?:৳|\$|tk)?\s?\d{3,7}[kK]?)|(\d{3,7}\s?(tk|৳|\$))', self.text)
+        return match.group(0) if match else None
+
+    def extract_facebook_url(self):
+        match = re.search(r'(https?:\/\/)?(www\.)?facebook\.com\/[A-Za-z0-9\.\-_]+', self.text)
+        return match.group(0) if match else None
+
+    def extract_generic_url(self):
+        match = re.search(r'(https?:\/\/)?(www\.)?[a-zA-Z0-9\-]+\.[a-z]{2,}(\/[\w\-]*)*', self.text)
+        return match.group(0) if match else None
+
+    def extract_name(self):
+        match = re.search(r"(?:my name is|i am|this is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)", self.text, re.IGNORECASE)
+        return match.group(1).strip() if match else None
+
+    def extract_location(self):
+        match = re.search(r"(from|based in|located at)\s+([A-Za-z\s]+)", self.text, re.IGNORECASE)
+        return match.group(2).strip() if match else None
+
+    def extract_services(self):
+        found_services = []
+        for keyword in self.SERVICE_KEYWORDS:
+            if keyword.lower() in self.text:
+                found_services.append(keyword)
+        return found_services
+
+    def extract_all(self):
+        return {
+            "email": self.extract_email(),
+            "phone": self.extract_phone(),
+            "budget": self.extract_budget(),
+            "facebook_url": self.extract_facebook_url(),
+            "website": self.extract_generic_url(),
+            "name": self.extract_name(),
+            "location": self.extract_location(),
+            "services": self.extract_services()
+        }
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class FacebookGraphAPI(View):
+    def __init__(self, **kwargs):
+        self.gemini_rag = Gemini_RAG()
+        self.gemini_rag.load_vectordb()
+        self.access_token = 'EAAKc15XRWAQBOwxKJKKBnrkbely40lloEzx3GEjX54g2Sqc8mUcZCBI3NmyhthhJmAL4SMw3oyM7ctEjZAdEOMg2jpePwRxpFUH8bWpm0c14v6xo7PFMn2wDv2mWwK967SVg8sWIIYn5mqF9QsAd3JceH41pY4WrzooZBZCEAEvqnOcuYx0lnZBEaGHBAH0gmqA6PEYj7hPEJ95MyW3u6cSpCQAZDZD'
+
+    def get(self,request):
+        mode = request.GET.get('hub.mode',None)
+        token = request.GET.get('hub.verify_token',None)
+        challenge = request.GET.get('hub.challenge')
+
+        if mode == 'subscribe'and token == 'trizync':
+            return HttpResponse(challenge,status=200)
+        # body = json.loads(request.body)
+        # print(request.body)
+        return JsonResponse({'success':True})
+    
+    def post(self, request):
+        body_unicode = request.body.decode('utf-8')
+        data = json.loads(body_unicode)
+
+        # Log for debug
+        # print("Incoming webhook payload:", json.dumps(data, indent=2))
+
+        if 'object' in data and data['object'] == 'page':
+            for entry in data['entry']:
+                for messaging_event in entry['messaging']:
+                    if 'message' in messaging_event:
+                        sender_id = messaging_event['sender']['id']
+                        recipient_id = messaging_event['recipient']['id']
+                        message_text = messaging_event['message'].get('text')
+
+                        if sender_id == '24242584162032247':
+                            try:
+                                response_text = self.gemini_rag.generate_answer_native(sender_id,message_text)
+                            except Exception as e:
+                                traceback.print_exc()
+                                response_text = "Thank you. Our Supoort agent will contact with you Soon."
+                            self.save_details(sender_id,message_text,response_text)
+                            # print(f"Received message from {sender_id}: {message_text}")
+                            self.send_message(sender_id,response_text)
+                            # Now you can call a function to reply using Send API
+
+        return JsonResponse({'status': 'ok'})
+    
+    def save_details(self,psid,message,response):
+        user = MessengerUser.objects.filter(psid=psid)
+        user_details = self.get_user_profile(psid)
+        extractor = UserMessageExtractor(message)
+
+        data = extractor.extract_all()
+
+        full_name = user_details.get('first_name','') +' '+ user_details.get('last_name','')
+
+        if not user.exists():
+            user = MessengerUser.objects.create(
+                psid = psid,
+                name = full_name,
+            )
+        else:
+            user = user.first()
+
+        user_message = UserMessage.objects.create(
+            user= user,
+            text = message,
+            response = response
+        )
+
+        if data['email']:
+            user.email = data['email']
+        if data['phone']:
+            user.phone = data['phone']
+        if data['location']:
+            user.location = data['location']
+        if data['budget']:
+            UserBudget.objects.create(
+                user = user,
+                message = user_message,
+                amount = data['budget']
+            )
+        # if data['facebook_url']:
+        #     user.facebook_url = data['facebook_url']
+        if data['website']:
+            UserWebsite.objects.create(
+                user= user,
+                message = user_message,
+                url = data['website']
+            )
+        if data['services']:
+            UserService.objects.create(
+                user= user,
+                message = user_message,
+                service = data['services']
+            )
+
+        user.save()
+
+    def send_message(self,recipient_id, message_text):
+        url = "https://graph.facebook.com/v18.0/me/messages"
+        headers = {
+            "Content-Type": "application/json"
+        }
+        data = {
+            "recipient": { "id": recipient_id },
+            "message": { "text": message_text }
+        }
+        params = {
+            "access_token": self.access_token
+        }
+        response = requests.post(url, headers=headers, params=params, json=data)
+        print("Send API response:", response.json())
+
+    def get_user_profile(self,psid):
+        url = f"https://graph.facebook.com/v18.0/{psid}"
+        params = {
+            'fields': 'first_name,last_name,profile_pic,locale',
+            'access_token': self.access_token
+        }
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            return response.json()
+        return {}
