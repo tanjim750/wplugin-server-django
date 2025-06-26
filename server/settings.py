@@ -28,7 +28,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-c#_3o9d-6g=(bwjod!8ysaem4%whlj%69gawgs5&2##x0u2wzh'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -77,18 +77,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'server.wsgi.application'
 CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = list(default_headers) + [
-    'authorization',
     'content-type',
 ]
 CORS_ALLOW_METHODS = [
     'GET',
     'POST',
-    'PUT',
-    'PATCH',
-    'DELETE',
-    'OPTIONS'
 ]
 
 # Database
