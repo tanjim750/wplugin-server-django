@@ -34,10 +34,10 @@ class Gemini_RAG:
         * generate_answer
     """
 
-    embeddings = HuggingFaceEmbeddings(model_name="hkunlp/instructor-large")
+    # embeddings = HuggingFaceEmbeddings(model_name="hkunlp/instructor-large")
 
     def __init__(self, persist_directory="./chroma_storage"):
-        self.gemini_key = "AIzaSyDrF9l_qfbaCS39GISoVwuZ84DtFc147cs" #AIzaSyCC-F3gwkxIkI-gCV-mjE0ebz8ZMtEHKFM, AIzaSyDrF9l_qfbaCS39GISoVwuZ84DtFc147cs
+        self.gemini_key = "key" 
         self.vectordb = None
         self.persist_directory = persist_directory
         self.memory_store = {}  # user_id: ConversationBufferMemory
@@ -264,7 +264,7 @@ class Gemini_RAG:
             ]
         )
 
-        client = genai.Client(api_key=self.gemini_key)
+        client = genai.Client(api_key="AIzaSyDrF9l_qfbaCS39GISoVwuZ84DtFc147cs")
 
         # Generate content (non-streaming)
         response = client.models.generate_content(
