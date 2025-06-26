@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+from corsheaders.defaults import default_headers
 
 import pymysql
 pymysql.install_as_MySQLdb()
@@ -76,6 +77,19 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'server.wsgi.application'
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'authorization',
+    'content-type',
+]
+CORS_ALLOW_METHODS = [
+    'GET',
+    'POST',
+    'PUT',
+    'PATCH',
+    'DELETE',
+    'OPTIONS'
+]
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
