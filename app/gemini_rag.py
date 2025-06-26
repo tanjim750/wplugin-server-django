@@ -1,18 +1,18 @@
 import random
-from langchain.chains import ConversationalRetrievalChain, create_history_aware_retriever, create_retrieval_chain
-from langchain.chains.llm import LLMChain
-from langchain.chains.combine_documents.stuff import create_stuff_documents_chain
-from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain.memory import ConversationBufferMemory
-from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
-from langchain.schema import AIMessage, HumanMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain_community.document_loaders.csv_loader import CSVLoader
-from langchain.text_splitter import CharacterTextSplitter
+# from langchain.chains import ConversationalRetrievalChain, create_history_aware_retriever, create_retrieval_chain
+# from langchain.chains.llm import LLMChain
+# from langchain.chains.combine_documents.stuff import create_stuff_documents_chain
+# from langchain_core.runnables.history import RunnableWithMessageHistory
+# from langchain.memory import ConversationBufferMemory
+# from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+# from langchain.schema import AIMessage, HumanMessage
+# from langchain_google_genai import ChatGoogleGenerativeAI
+# from langchain_community.document_loaders.csv_loader import CSVLoader
+# from langchain.text_splitter import CharacterTextSplitter
 
 import spacy
-from langchain_chroma import Chroma
-from langchain_huggingface import HuggingFaceEmbeddings
+# from langchain_chroma import Chroma
+# from langchain_huggingface import HuggingFaceEmbeddings
 
 from google import genai
 from google.genai import types
@@ -37,7 +37,7 @@ class Gemini_RAG:
     embeddings = HuggingFaceEmbeddings(model_name="hkunlp/instructor-large")
 
     def __init__(self, persist_directory="./chroma_storage"):
-        self.gemini_key = "key" 
+        self.gemini_key = "AIzaSyDrF9l_qfbaCS39GISoVwuZ84DtFc147cs" #AIzaSyCC-F3gwkxIkI-gCV-mjE0ebz8ZMtEHKFM, AIzaSyDrF9l_qfbaCS39GISoVwuZ84DtFc147cs
         self.vectordb = None
         self.persist_directory = persist_directory
         self.memory_store = {}  # user_id: ConversationBufferMemory
