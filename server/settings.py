@@ -107,7 +107,7 @@ DATABASES = {
         'NAME': 'zyncops',
         'USER': 'zyncops',
         'PASSWORD': 'triZync@2025',
-        'HOST': '127.0.0.1',
+        'HOST': '5.223.60.118',
         'PORT': '3306',
     }
 }

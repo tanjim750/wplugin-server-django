@@ -24,7 +24,7 @@ from app.couriers.steadfast import SteadFastAPI
 from app.couriers.pathao import PathaoAPI
 
 from app.event_manager import EventManager
-from app.gemini_rag import Gemini_RAG
+# from app.gemini_rag import Gemini_RAG
 
 @csrf_exempt
 def verify_license(request):
