@@ -37,7 +37,7 @@ class Gemini_RAG:
     embeddings = HuggingFaceEmbeddings(model_name="hkunlp/instructor-large")
 
     def __init__(self, persist_directory="./chroma_storage"):
-        self.gemini_key = "AIzaSyDrF9l_qfbaCS39GISoVwuZ84DtFc147cs" #AIzaSyCC-F3gwkxIkI-gCV-mjE0ebz8ZMtEHKFM, AIzaSyDrF9l_qfbaCS39GISoVwuZ84DtFc147cs
+        self.gemini_key = "key" 
         self.vectordb = None
         self.persist_directory = persist_directory
         self.memory_store = {}  # user_id: ConversationBufferMemory
