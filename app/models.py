@@ -58,9 +58,10 @@ class MessengerUser(models.Model):
     name = models.CharField(max_length=100, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     phone = models.CharField(max_length=20, blank=True, null=True)
+    auto_message = models.BooleanField(default=True)
     location = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    updated_at = models.DateTimeField(auto_now_add=True, null=True)
     def __str__(self):
         return self.name or self.psid
 
@@ -70,6 +71,7 @@ class UserMessage(models.Model):
     response = models.TextField(null=True)
     received_at = models.DateTimeField(auto_now_add=True)
     intent = models.CharField(max_length=100, blank=True, null=True)  # optional
+    mid = models.CharField(max_length=255,null=True,blank=True)
 
     def __str__(self):
         return f"{self.user}: {self.text[:30]}"
@@ -103,4 +105,22 @@ class UserWebsite(models.Model):
     def __str__(self):
         return self.url
 
+
+class GeminiAccessToken(models.Model):
+    token = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.token
+    
+class LLMSystemPrompt(models.Model):
+    prompt = models.TextField(default="You are Trizync Solution's intelligent virtual assistant.")
+
+    def __str__(self):
+        return self.prompt[:20]
+    
+class PageAccessToken(models.Model):
+    token = models.CharField(max_length=255)
+
+    def __str__(self):
+        return self.token
 

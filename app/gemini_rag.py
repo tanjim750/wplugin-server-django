@@ -10,12 +10,13 @@ import random
 # from langchain_community.document_loaders.csv_loader import CSVLoader
 # from langchain.text_splitter import CharacterTextSplitter
 
-import spacy
+# import spacy
 # from langchain_chroma import Chroma
 # from langchain_huggingface import HuggingFaceEmbeddings
 
 from google import genai
 from google.genai import types
+import random
 
 
 from app.models import *
@@ -37,11 +38,12 @@ class Gemini_RAG:
     # embeddings = HuggingFaceEmbeddings(model_name="hkunlp/instructor-large")
 
     def __init__(self, persist_directory="./chroma_storage"):
-        self.gemini_key = "key" 
-        self.vectordb = None
-        self.persist_directory = persist_directory
-        self.memory_store = {}  # user_id: ConversationBufferMemory
-        self.__message_template()
+        self.gemini_key = GeminiAccessToken.objects.all().values_list('token',flat=True)
+        self.system_template = LLMSystemPrompt.objects.last().prompt
+        # self.vectordb = None
+        # self.persist_directory = persist_directory
+        # self.memory_store = {}  # user_id: ConversationBufferMemory
+        # self.__message_template()
 
     @staticmethod
     def text_splitter(text):
@@ -209,7 +211,7 @@ class Gemini_RAG:
     
     def generate_answer_native(self, user_id: str, user_input: str):
 
-        model = "gemini-1.5-flash"
+        model = "gemini-2.5-flash"
 
         # Prepare conversation context
         contents = []
@@ -227,46 +229,15 @@ class Gemini_RAG:
         generate_content_config = types.GenerateContentConfig(
             response_mime_type="text/plain",
             system_instruction=[
-                types.Part.from_text(text='''
-                    You are Trizync Solution's messenger chat assistant, trained to professionally support and guide customers.
-
-                    Company Overview:
-                    Trizync Solution is a professional Ecommerce and IT service agency. We offer:
-                    - Marketing Consultancy
-                    - Website Development
-                    - Tracking & Analysis
-                    - Digital Marketing
-                    - Product Design
-                    - UI & UX Design
-                    - Business Automation
-                    - Digital Product Development
-                    
-                    --------
-
-                    Your Goal:
-                    - Understand the customer's intent clearly.
-                    - Answer questions about our services, pricing, timeline, process, or technical aspects.
-                    - Guide them to the right service or collect lead info if needed.
-                    - Be clear, professional, helpful, and friendly.
-                    - Use Bengali if the user writes in Bengali; otherwise, continue in English.
-
-                    Respond with:
-                    - A helpful and relevant answer.
-                    - A follow-up question or suggestion if appropriate.
-                    - A soft CTA (Call to Action) like: “Would you like a free consultation?” or “Can I connect you with our real time agent?”
-
-                    If you're unsure, ask the user for clarification.
-
-                    --- Begin your response below this line ---
-                    Answer between 500-1000 words do not excced the limit
-                    '''
-                )
+                types.Part.from_text(text=self.system_template)
             ]
         )
+        # print('gemini key',random.choice(self.gemini_key))
+        #AIzaSyDrF9l_qfbaCS39GISoVwuZ84DtFc147cs
+        client = genai.Client(api_key=random.choice(self.gemini_key))
+        
 
-        client = genai.Client(api_key="AIzaSyDrF9l_qfbaCS39GISoVwuZ84DtFc147cs")
-
-        # Generate content (non-streaming)
+        #Generate content (non-streaming)
         response = client.models.generate_content(
             model=model,
             contents=contents,

@@ -13,7 +13,7 @@ import json
 import random
 import string
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import traceback
 import threading
 import re
@@ -24,7 +24,7 @@ from app.couriers.steadfast import SteadFastAPI
 from app.couriers.pathao import PathaoAPI
 
 from app.event_manager import EventManager
-# from app.gemini_rag import Gemini_RAG
+from app.gemini_rag import Gemini_RAG
 
 @csrf_exempt
 def verify_license(request):
@@ -476,8 +476,8 @@ class UserMessageExtractor:
 class FacebookGraphAPI(View):
     def __init__(self, **kwargs):
         self.gemini_rag = Gemini_RAG()
-        self.gemini_rag.load_vectordb()
-        self.access_token = 'EAAKc15XRWAQBOwxKJKKBnrkbely40lloEzx3GEjX54g2Sqc8mUcZCBI3NmyhthhJmAL4SMw3oyM7ctEjZAdEOMg2jpePwRxpFUH8bWpm0c14v6xo7PFMn2wDv2mWwK967SVg8sWIIYn5mqF9QsAd3JceH41pY4WrzooZBZCEAEvqnOcuYx0lnZBEaGHBAH0gmqA6PEYj7hPEJ95MyW3u6cSpCQAZDZD'
+        # self.gemini_rag.load_vectordb()
+        self.access_token = PageAccessToken.objects.all().last().token
 
     def get(self,request):
         mode = request.GET.get('hub.mode',None)
@@ -503,22 +503,88 @@ class FacebookGraphAPI(View):
                     if 'message' in messaging_event:
                         sender_id = messaging_event['sender']['id']
                         recipient_id = messaging_event['recipient']['id']
+                        timestamp = messaging_event['timestamp']
                         message_text = messaging_event['message'].get('text')
 
-                        if sender_id == '24242584162032247':
+                        # Convert given timestamp to datetime object
+                        given_datetime = datetime.fromtimestamp(timestamp / 1000)
+                        current_datetime = datetime.now()
+
+                        # Calculate the difference
+                        time_difference = current_datetime - given_datetime
+
+                        # Check if the difference is more than 3 minutes
+                        more_than_2_minutes = time_difference > timedelta(minutes=2)
+
+                        user = MessengerUser.objects.filter(psid=sender_id)
+                        is_send_bot_msg = False
+                        
+                        if not user.exists() and not more_than_2_minutes:
+                            is_send_bot_msg = True
+                        else:
+                            first_user = user.first()
+                            user_last_updated_difference =  user.first().updated_at - timezone.now()
+                            user_last_updated_hours_difference = user_last_updated_difference.total_seconds() / 3600
+                            if not more_than_2_minutes and user.first().auto_message:
+                                is_send_bot_msg = True
+                            elif user_last_updated_hours_difference > 6:
+                                is_send_bot_msg = True
+                                first_user.auto_message = True
+                                first_user.updated_at = timezone.now()
+                                first_user.save()
+
+                        
+
+                        if is_send_bot_msg:
                             try:
                                 response_text = self.gemini_rag.generate_answer_native(sender_id,message_text)
                             except Exception as e:
-                                traceback.print_exc()
+                                # traceback.print_exc()
                                 response_text = "Thank you. Our Supoort agent will contact with you Soon."
-                            self.save_details(sender_id,message_text,response_text)
                             # print(f"Received message from {sender_id}: {message_text}")
-                            self.send_message(sender_id,response_text)
+                            response_chunks = self.split_llm_response_by_chunks(response_text)
+                            sent_response_status_codes = []
+                            for chunk in response_chunks:
+                                sent_response = self.send_message(sender_id,chunk)
+                                sent_response_status_codes.append(sent_response.status_code)
+
+                            if 200 in sent_response_status_codes:
+                                sent_response_json = sent_response.json()
+                                sent_message_id = sent_response_json['message_id']
+                                self.save_details(sender_id,message_text,response_text,sent_message_id)
                             # Now you can call a function to reply using Send API
+                        if user.exists() and not user.first().auto_message:
+                            UserMessage.objects.create(
+                                user= user,
+                                text = message_text,
+                                response = "no response. assume a respnse.",
+                                mid = ""
+                            )
+                    elif 'delivery' in messaging_event:
+                        mids = messaging_event['delivery']['mids']
+                        sender_id = messaging_event['sender']['id']
+                        user = MessengerUser.objects.filter(psid=sender_id)
+
+                        if user.exists():
+                            user = user.first()
+                        else:
+                            user_details = self.get_user_profile(sender_id)
+                            full_name = user_details.get('first_name','') +' '+ user_details.get('last_name','')
+                            user = MessengerUser.objects.create(
+                                psid = sender_id,
+                                name = full_name,
+                            )
+                        
+                        is_msg_exists = UserMessage.objects.filter(mid__in = mids)
+                        if not is_msg_exists:
+                            user.auto_message = False
+                            user.updated_at = timezone.now()
+                            
+                        user.save()
 
         return JsonResponse({'status': 'ok'})
     
-    def save_details(self,psid,message,response):
+    def save_details(self,psid,message,response,sent_message_id,user_auto_message=True):
         user = MessengerUser.objects.filter(psid=psid)
         user_details = self.get_user_profile(psid)
         extractor = UserMessageExtractor(message)
@@ -535,10 +601,12 @@ class FacebookGraphAPI(View):
         else:
             user = user.first()
 
+        user.auto_message = user_auto_message
         user_message = UserMessage.objects.create(
             user= user,
             text = message,
-            response = response
+            response = response,
+            mid = sent_message_id
         )
 
         if data['email']:
@@ -583,7 +651,8 @@ class FacebookGraphAPI(View):
             "access_token": self.access_token
         }
         response = requests.post(url, headers=headers, params=params, json=data)
-        print("Send API response:", response.json())
+        # print("Send API response:", response.json())
+        return response
 
     def get_user_profile(self,psid):
         url = f"https://graph.facebook.com/v18.0/{psid}"
@@ -595,3 +664,16 @@ class FacebookGraphAPI(View):
         if response.status_code == 200:
             return response.json()
         return {}
+    
+    def split_llm_response_by_chunks(self,response_text):
+        # Pattern matches (1/2), (2/3), etc.
+        pattern = r'\(\d+\/\d+\)'
+        if re.search(pattern, response_text):
+            # Split by the chunk markers (assuming chunk start with (x/y))
+            # This splits text at each occurrence of (number/number)
+            parts = re.split(r'\(\d+\/\d+\)', response_text)
+            # The first split part might be empty if text starts with (1/2), remove empties
+            return [p.strip() for p in parts if p.strip()]
+        else:
+            # No chunk labels found, return full text as one part
+            return [response_text.strip()]
