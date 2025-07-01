@@ -18,6 +18,13 @@ class License(models.Model):
     
     def __str__(self):
         return self.domain
+    
+class ZyncopsPlugin(models.Model):
+    file = models.FileField(upload_to="zyncops")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.file.name
 
 class PathaoCredential(models.Model):
     client_id = models.CharField(max_length=100)
@@ -56,14 +63,14 @@ class TrizyncService(models.Model):
 class MessengerUser(models.Model):
     psid = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=100, blank=True, null=True)
-    email = models.EmailField(blank=True, null=True)
-    phone = models.CharField(max_length=20, blank=True, null=True)
     auto_message = models.BooleanField(default=True)
-    location = models.CharField(max_length=100, blank=True, null=True)
+    is_blocked = models.BooleanField(default=False)
+    trial_claimed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now_add=True, null=True)
     def __str__(self):
         return self.name or self.psid
+    
 
 class UserMessage(models.Model):
     user = models.ForeignKey(MessengerUser, on_delete=models.CASCADE, related_name='messages')
@@ -76,9 +83,43 @@ class UserMessage(models.Model):
     def __str__(self):
         return f"{self.user}: {self.text[:30]}"
 
+
+class UserName(models.Model):
+    user = models.ForeignKey(MessengerUser, on_delete=models.CASCADE, related_name='user_name')
+    name = models.CharField(max_length=255)
+    message = models.ForeignKey(UserMessage, on_delete=models.SET_NULL, null=True, blank=True, related_name='name_extractions')
+    detected_at = models.DateTimeField(auto_now_add=True)
+
+
+class UserEmail(models.Model):
+    user = models.ForeignKey(MessengerUser, on_delete=models.CASCADE, related_name='email')
+    email = models.CharField(max_length=255)
+    message = models.ForeignKey(UserMessage, on_delete=models.SET_NULL, null=True, blank=True, related_name='email_extractions')
+    detected_at = models.DateTimeField(auto_now_add=True)
+
+
+class UserPhone(models.Model):
+    user = models.ForeignKey(MessengerUser, on_delete=models.CASCADE, related_name='phone')
+    phone = models.CharField(max_length=255)
+    message = models.ForeignKey(UserMessage, on_delete=models.SET_NULL, null=True, blank=True, related_name='phone_extractions')
+    detected_at = models.DateTimeField(auto_now_add=True)
+
+
+class UserAddress(models.Model):
+    user = models.ForeignKey(MessengerUser, on_delete=models.CASCADE, related_name='address')
+    address = models.CharField(max_length=255)
+    message = models.ForeignKey(UserMessage, on_delete=models.SET_NULL, null=True, blank=True, related_name='address_extractions')
+    detected_at = models.DateTimeField(auto_now_add=True)
+
+class UserFacebookURL(models.Model):
+    user = models.ForeignKey(MessengerUser, on_delete=models.CASCADE, related_name='facebook_url')
+    url = models.CharField(max_length=255)
+    message = models.ForeignKey(UserMessage, on_delete=models.SET_NULL, null=True, blank=True, related_name='facebook_url_extractions')
+    detected_at = models.DateTimeField(auto_now_add=True)
+
 class UserService(models.Model):
     user = models.ForeignKey(MessengerUser, on_delete=models.CASCADE, related_name='service')
-    service = models.ForeignKey(TrizyncService, on_delete=models.CASCADE)
+    service = models.CharField(max_length=255)
     message = models.ForeignKey(UserMessage, on_delete=models.SET_NULL, null=True, blank=True, related_name='service_extractions')
     detected_at = models.DateTimeField(auto_now_add=True)
 

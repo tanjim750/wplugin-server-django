@@ -217,8 +217,8 @@ class Gemini_RAG:
         contents = []
         history = UserMessage.objects.filter(user__psid=user_id).order_by("-received_at")
         
-        for turn in history[:10]:
-            print(turn.text)
+        for turn in history[:20]:
+            # print(turn.text)
             contents.append(types.Content(role="user", parts=[types.Part.from_text(text=turn.text)]))
             contents.append(types.Content(role="model", parts=[types.Part.from_text(text=turn.response)]))
         
