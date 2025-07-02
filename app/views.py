@@ -2,6 +2,7 @@ from django.http import JsonResponse, HttpResponse
 from .models import *
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from django.utils.timezone import make_aware as make_django_timezone_aware
 from django.views import View
 from django.forms.models import model_to_dict
 from django.shortcuts import render, get_object_or_404
@@ -206,7 +207,7 @@ class GenerateKey(View):
         
         try:
             license_key = self.generate_license_key()
-            expiry_datetime = datetime.strptime(expires_at, "%Y-%m-%d")
+            expiry_datetime = make_django_timezone_aware(datetime.strptime(expires_at, "%Y-%m-%d"))
 
             while License.objects.filter(key=license_key).exists():
                 license_key = self.generate_license_key()
