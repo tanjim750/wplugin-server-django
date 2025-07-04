@@ -18,8 +18,8 @@ from datetime import datetime, timedelta
 import traceback
 import threading
 import re
-import spacy
-from spacy.matcher import PhraseMatcher
+# import spacy
+# from spacy.matcher import PhraseMatcher
 from urllib.parse import urlparse
 
 
@@ -374,24 +374,17 @@ class TriggerFbEventView(View):
             pixel_id = data.get('pixel_id',None)
             access_token = data.get('access_token',None)
             test_event = data.get('test_event',None)
-            current_status = data.get('current_status',None)
-            old_status = data.get('old_status',None)
+            event = data.get('event',None)
             payload = data.get('details',None)
 
-            if not (license_key and domain and pixel_id and access_token):
+            if not (license_key and domain and pixel_id and access_token and event):
                 return JsonResponse({
                     'success':False,
                     'error':'Missing required data.'
                 },status=400)
 
             license = License.objects.filter(key=license_key,domain=domain)
-            fb_event = FacebookEvent.objects.filter(text__iexact=current_status)
-
-            if not fb_event.exists():
-                return JsonResponse({
-                    'success':False,
-                    'error':'No standard event found.'
-                },status=400)
+            fb_event = FacebookEvent.objects.filter(text__iexact=event)
 
             if not license.exists():
                 return JsonResponse({
@@ -399,10 +392,13 @@ class TriggerFbEventView(View):
                     'error':'Invalid plugin licence key.'
                 },status=400)
 
-            if(current_status == old_status):
-                return JsonResponse({'success': False, 'error': 'Current and old order status cannot be same.'}, status=400)
+            if not fb_event.exists():
+                return JsonResponse({
+                    'success':False,
+                    'error':'No standard event found.'
+                },status=400)
 
-
+            
             manager = EventManager(
                 pixel_id=pixel_id,
                 access_token=access_token,
