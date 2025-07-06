@@ -72,7 +72,7 @@ class MessengerUser(models.Model):
     updated_at = models.DateTimeField(auto_now_add=True, null=True)
     def __str__(self):
         last_message = self.messages.last()
-        return self.name if self.name else f"{self.psid}:{last_message.text[:50] if last_message else 'No messages'}"
+        return self.name if self.name.strip() else f"{self.psid}:{last_message.text[:50] if last_message else 'No messages'}"
     
 
 class UserMessage(models.Model):
