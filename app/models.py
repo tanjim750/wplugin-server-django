@@ -3,6 +3,8 @@ from django.utils import timezone
 
 class License(models.Model):
     customer_name = models.CharField(max_length=255)
+    phone = models.CharField(max_length=255, blank=True, null=True)
+    email = models.CharField(max_length=255, blank=True, null=True)
     key = models.CharField(max_length=255, unique=True)
     is_active = models.BooleanField(default=True)
     domain = models.CharField(max_length=255)

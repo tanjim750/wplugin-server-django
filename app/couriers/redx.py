@@ -37,7 +37,7 @@ class RedxAPI:
         data = {
             'customer_name': customer_name,
             'customer_phone': customer_phone,
-            'delivery_area': delivery_area,
+            'delivery_area': customer_address,
             'delivery_area_id': delivery_area_id,  # Static, should be mapped properly
             'customer_address': customer_address,
             'merchant_invoice_id': merchant_invoice_id,
@@ -56,7 +56,7 @@ class RedxAPI:
 
         try:
             response = requests.post(f"{self.base_url}/parcel", headers=headers, json=data, timeout=20)
-            # print(response.json())
+            print(response.json())
             response.raise_for_status()
             body = response.json()
 
@@ -68,6 +68,7 @@ class RedxAPI:
             # return body
 
         except requests.RequestException as e:
+            print(e)
             return {'success': False, 'error': f"Invalid data. Please try again."}
 
     def track_parcel(self, tracking_id):

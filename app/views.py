@@ -18,8 +18,8 @@ from datetime import datetime, timedelta
 import traceback
 import threading
 import re
-# import spacy
-# from spacy.matcher import PhraseMatcher
+import spacy
+from spacy.matcher import PhraseMatcher
 from urllib.parse import urlparse
 
 
@@ -37,13 +37,13 @@ def verify_license(request):
 
     try:
         data = json.loads(request.body)
-        license_key = data.get('license_key')
+        license_key:str = data.get('license_key','')
         domain = data.get('domain')
     except Exception:
         return JsonResponse({'success':False,'error': 'Invalid data'}, status=400)
 
     try:
-        license = License.objects.get(key=license_key,domain=domain)
+        license = License.objects.get(key=license_key.strip(),domain=domain)
         is_valid = license.is_valid()
         return JsonResponse({'success':True,'valid': is_valid},status=200)
     except License.DoesNotExist:
@@ -65,7 +65,7 @@ class CreateParcel(View):
             platform = data.get('platform',None)
             test_mode = data.get('test_mode',False)
 
-            # print(license_key,domain,credentials,platform)
+            print(license_key,domain,credentials,platform)
 
             if not (license_key and domain and credentials and order and platform):
                 return JsonResponse({
@@ -104,6 +104,7 @@ class CreateParcel(View):
             # print(credentials['api_key'])
             
             response = courier.create_parcel(order)
+            print(response)
 
             if 'error' in response:
                 status=400
@@ -196,6 +197,8 @@ class GenerateKey(View):
     
     def post(self,request):
         customer_name = request.POST.get('name',None)
+        phone = request.POST.get('phone',None)
+        email = request.POST.get('email',None)
         expires_at = request.POST.get('expiry',None)
         domain = request.POST.get('domain',None)
 
@@ -214,6 +217,8 @@ class GenerateKey(View):
 
             license = License.objects.create(
                 customer_name = customer_name,
+                phone=phone,
+                email = email,
                 key= license_key,
                 domain = domain,
                 expires_at = expiry_datetime
