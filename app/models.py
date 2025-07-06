@@ -71,7 +71,8 @@ class MessengerUser(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now_add=True, null=True)
     def __str__(self):
-        return self.name or self.psid
+        last_message = UserMessage.objects.filter(user=self).last()
+        return self.name if self.name else f"{self.psid}:{last_message}"
     
 
 class UserMessage(models.Model):
