@@ -92,7 +92,7 @@ class EventManager:
 
             event = Event(
                 event_name=event_name,
-                event_time=payload.get("event_time", int(time.time())),
+                event_time=int(time.time()),
                 user_data=user_data,
                 custom_data=custom_data,
                 action_source=ActionSource.WEBSITE,

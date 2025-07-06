@@ -53,6 +53,7 @@ class FacebookEventRequest(models.Model):
     fbtrace_id = models.CharField(max_length=255,null=True,blank=True)
     is_success = models.BooleanField(default=False)
     request_data = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.event_request}->{self.standard_event}"

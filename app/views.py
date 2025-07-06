@@ -18,8 +18,8 @@ from datetime import datetime, timedelta
 import traceback
 import threading
 import re
-import spacy
-from spacy.matcher import PhraseMatcher
+# import spacy
+# from spacy.matcher import PhraseMatcher
 from urllib.parse import urlparse
 
 
@@ -223,6 +223,8 @@ class GenerateKey(View):
                 domain = domain,
                 expires_at = expiry_datetime
             )
+
+            license.save()
 
             return JsonResponse(model_to_dict(license))
         
