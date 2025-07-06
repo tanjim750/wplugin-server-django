@@ -372,7 +372,7 @@ class TriggerFbEventView(View):
         try:
             data = json.loads(request.body)
 
-            print(data)
+            # print(data)
 
             license_key = data.get('license_key',None)
             domain = data.get('domain', None)
@@ -412,7 +412,15 @@ class TriggerFbEventView(View):
             
             fb_event_name = fb_event.first().event_name
             result = manager.send_event(fb_event_name,payload)
-            print(result)
+            # print(result)
+            # save event request data
+            try:
+                thread1 = threading.Thread(target=self.save_event_request, args=(license.first(),event,
+                            fb_event_name,fb_event.first(),data,result))
+                thread1.start()
+            except:
+                pass
+
             return JsonResponse(result, status=200 if result['success'] else 200)
 
         except json.JSONDecodeError:
@@ -420,6 +428,21 @@ class TriggerFbEventView(View):
         except Exception as e:
             print(e)
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        
+    def save_event_request(self,customer,event_request,standard_event,event_ins,event_data,response):
+        is_success = response.get('success',False)
+        fbtrace_id = response.get('response',{}).get('fbtrace_id',None)
+
+        return FacebookEventRequest.objects.create(
+            event= event_ins,
+            customer = customer,
+            event_request = event_request,
+            standard_event = standard_event,
+            fbtrace_id = fbtrace_id,
+            is_success = is_success,
+            request_data = event_data
+        )
+
 
 
 class UserMessageExtractor:

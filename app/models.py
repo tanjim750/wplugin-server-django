@@ -45,6 +45,17 @@ class FacebookEvent(models.Model):
     def __str__(self):
         return self.text
 
+class FacebookEventRequest(models.Model):
+    event = models.ForeignKey(FacebookEvent, on_delete=models.SET_NULL, null=True,blank=True)
+    customer = models.ForeignKey(License, on_delete=models.SET_NULL, null=True)
+    event_request = models.CharField(max_length=255)
+    standard_event = models.CharField(max_length=255)
+    fbtrace_id = models.CharField(max_length=255,null=True,blank=True)
+    is_success = models.BooleanField(default=False)
+    request_data = models.JSONField()
+
+    def __str__(self):
+        return f"{self.event_request}->{self.standard_event}"
 
 class Customer(models.Model):
     name = models.CharField(max_length=255)
