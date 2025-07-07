@@ -25,15 +25,6 @@ class EventManager:
             return hashlib.sha256(value.strip().lower().encode()).hexdigest()
         return None
     
-    def generate_fbp(self):
-        timestamp = int(time.time())
-        random_part = random.randint(1000000000000000, 9999999999999999)
-        return f"fb.1.{timestamp}.{random_part}"
-    
-    def generate_fbc(self):
-        timestamp = int(time.time())
-        click_id = random.randint(1000000000000000, 9999999999999999)
-        return f"fb.1.{timestamp}.{click_id}"
 
     def build_user_data(self, customer):
         return UserData(
