@@ -21,6 +21,7 @@ class SteadFastAPI:
         merchant_invoice_id = str(order.get('id', ''))
         cash_collection_amount = float(order.get('total', 0))
         
+        order_id = order.get('order_id')
 
         url = f"{self.base_url}/create_order"
         headers = {
@@ -44,6 +45,7 @@ class SteadFastAPI:
                 consignment = response_data.get('consignment')
                 return {
                     'success': True,
+                    'order_id':order_id,
                     'message': response_data.get('message', 'Order Created Successfully'),
                     'tracking_id': consignment.get('tracking_code')
                 }
@@ -57,6 +59,7 @@ class SteadFastAPI:
 
             return {
                 'success': False,
+                'order_id':order_id,
                 'error': error_message,
                 'http_code': response.status_code
             }

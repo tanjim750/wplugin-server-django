@@ -61,13 +61,13 @@ class CreateParcel(View):
             license_key = data.get('license_key',None)
             domain = data.get('domain', None)
             credentials = data.get('credentials', None)
-            order = data.get('data', None)
+            orders = data.get('data', None)
             platform = data.get('platform',None)
             test_mode = data.get('test_mode',False)
 
-            print(license_key,domain,credentials,platform)
+            # print(license_key,domain,credentials,platform)
 
-            if not (license_key and domain and credentials and order and platform):
+            if not (license_key and domain and credentials and orders and platform):
                 return JsonResponse({
                     'success':False,
                     'error':'Please provide valid data'
@@ -102,16 +102,26 @@ class CreateParcel(View):
                 }, status=400)
             
             # print(credentials['api_key'])
-            
-            response = courier.create_parcel(order)
-            print(response)
+            if type(orders) != list:
+                orders = [orders]
+                
+            results = []
+            for order in orders:
+                response = courier.create_parcel(order)
+                response['order_id'] = order.get('order_id')
+                results.append(response)
 
-            if 'error' in response:
+            print(results)
+
+            if not results:
                 status=400
             else:
                 status=200
             
-            return JsonResponse(response,status=status)
+            return JsonResponse({
+                'success': True,
+                'results': results
+            },status=status)
 
         except Exception as e:
             print(e)
