@@ -43,9 +43,25 @@ def verify_license(request):
         return JsonResponse({'success':False,'error': 'Invalid data'}, status=400)
 
     try:
+        print(license_key,domain)
         license = License.objects.get(key=license_key.strip(),domain=domain)
+        print("license",license)
+
         is_valid = license.is_valid()
-        return JsonResponse({'success':True,'valid': is_valid},status=200)
+        expire_date = license.expires_at.date() if license.expires_at else "lifetime"
+
+        if expire_date == "lifetime":
+            expire_label = "You have lifetime subscription plan."
+        else:
+            expire_label = f"You have access until {str(expire_date)}"
+
+        return JsonResponse({
+            'success':True,
+            'valid': is_valid,
+            'expire_date':expire_date,
+            'expire_label':expire_label
+        },status=200)
+
     except License.DoesNotExist:
         return JsonResponse({'success':False,'valid': False},status=400)
     
@@ -71,7 +87,7 @@ class CreateParcel(View):
                 return JsonResponse({
                     'success':False,
                     'error':'Please provide valid data'
-                },status=400)
+                },status=400) 
 
             license = License.objects.filter(key=license_key,domain=domain)
 
