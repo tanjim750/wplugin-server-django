@@ -13,11 +13,11 @@ from facebook_business.adobjects.serverside.delivery_category import DeliveryCat
 import traceback,random
 
 class EventManager:
-    def __init__(self, pixel_id, access_token, test_code=None):
+    def __init__(self, pixel_id, access_token, event_id =None, test_code=None):
         self.pixel_id = pixel_id
         self.access_token = access_token
         self.test_code = test_code
-
+        self.event_id = event_id
         FacebookAdsApi.init(access_token=self.access_token)
 
     def hash_data(self, value):
@@ -27,6 +27,9 @@ class EventManager:
     
 
     def build_user_data(self, customer):
+        if not customer:
+            return None
+        
         return UserData(
             email=self.hash_data(customer.get("email")),
             phone=self.hash_data(customer.get("phone")),
@@ -77,7 +80,7 @@ class EventManager:
 
     def send_event(self,event_name, payload):
         try:
-            user_data = self.build_user_data(payload.get("customer", {}))
+            user_data = self.build_user_data(payload.get("customer", None))
             # print(user_data)
             custom_data = self.build_custom_data(payload)
 
@@ -87,7 +90,8 @@ class EventManager:
                 user_data=user_data,
                 custom_data=custom_data,
                 action_source=ActionSource.WEBSITE,
-                event_source_url= payload.get('source_url',None)
+                event_source_url= payload.get('source_url',None),
+                event_id = self.event_id
             )
             
             request = EventRequest(

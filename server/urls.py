@@ -29,7 +29,8 @@ urlpatterns = [
     path('track-parcel/',TrackParcel.as_view()),
     path('fraud-check/',FraudCheck.as_view()),
     path('send-event/',TriggerFbEventView.as_view()),
-    path('fb-graph/',FacebookGraphAPI.as_view())
+    path('fb-graph/',FacebookGraphAPI.as_view()),
+    path('get-events/',GetAllFacebookEvents.as_view())
 ]
 
 urlpatterns += static(settings.MEDIA_URL,

@@ -18,8 +18,8 @@ from datetime import datetime, timedelta
 import traceback
 import threading
 import re
-import spacy
-from spacy.matcher import PhraseMatcher
+# import spacy
+# from spacy.matcher import PhraseMatcher
 from urllib.parse import urlparse
 
 
@@ -400,13 +400,14 @@ class TriggerFbEventView(View):
         try:
             data = json.loads(request.body)
 
-            # print(data)
+            print(data)
 
             license_key = data.get('license_key',None)
             domain = data.get('domain', None)
             pixel_id = data.get('pixel_id',None)
             access_token = data.get('access_token',None)
             test_event = data.get('test_event',None)
+            event_id = data.get('event_id',None)
             event = data.get('event',None)
             payload = data.get('details',None)
 
@@ -435,7 +436,8 @@ class TriggerFbEventView(View):
             manager = EventManager(
                 pixel_id=pixel_id,
                 access_token=access_token,
-                test_code=test_event  # Optional for test events
+                test_code=test_event,
+                event_id = event_id
             )
             
             fb_event_name = fb_event.first().event_name
@@ -471,6 +473,10 @@ class TriggerFbEventView(View):
             request_data = event_data
         )
 
+class GetAllFacebookEvents(View):
+    def get(self,request):
+        events = list(FacebookEvent.objects.all().values())
+        return JsonResponse({'events': events}, status=200)
 
 
 class UserMessageExtractor:
