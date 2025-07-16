@@ -43,9 +43,9 @@ def verify_license(request):
         return JsonResponse({'success':False,'error': 'Invalid data'}, status=400)
 
     try:
-        print(license_key,domain)
+        # print(license_key,domain)
         license = License.objects.get(key=license_key.strip(),domain=domain)
-        print("license",license)
+        # print("license",license)
 
         is_valid = license.is_valid()
         expire_date = license.expires_at.date() if license.expires_at else "lifetime"
@@ -91,7 +91,7 @@ class CreateParcel(View):
 
             license = License.objects.filter(key=license_key,domain=domain)
 
-            if not license.exists():
+            if not license.exists() and not license.first().is_valid():
                 return JsonResponse({
                     'success':False,
                     'error':'Invalid plugin licence key.'
@@ -171,7 +171,7 @@ class TrackParcel(View):
 
             license = License.objects.filter(key=license_key,domain=domain)
 
-            if not license.exists():
+            if not license.exists() and not license.first().is_valid():
                 return JsonResponse({
                     'success':False,
                     'error':'Invalid plugin licence key.'
@@ -299,7 +299,7 @@ class FraudCheck(View):
 
             license = License.objects.filter(key=license_key,domain=domain)
 
-            if not license.exists():
+            if not license.exists() and not license.first().is_valid():
                 return JsonResponse({
                     'success':False,
                     'error':'Invalid plugin licence key.'
@@ -400,7 +400,7 @@ class TriggerFbEventView(View):
         try:
             data = json.loads(request.body)
 
-            print(data)
+            # print(data)
 
             license_key = data.get('license_key',None)
             domain = data.get('domain', None)
@@ -420,7 +420,7 @@ class TriggerFbEventView(View):
             license = License.objects.filter(key=license_key,domain=domain)
             fb_event = FacebookEvent.objects.filter(text__iexact=event)
 
-            if not license.exists():
+            if not license.exists() and not license.first().is_valid():
                 return JsonResponse({
                     'success':False,
                     'error':'Invalid plugin licence key.'
@@ -456,7 +456,7 @@ class TriggerFbEventView(View):
         except json.JSONDecodeError:
             return JsonResponse({'success': False, 'error': 'Invalid JSON payload'}, status=400)
         except Exception as e:
-            print(e)
+            # print(e)
             return JsonResponse({'success': False, 'error': str(e)}, status=500)
         
     def save_event_request(self,customer,event_request,standard_event,event_ins,event_data,response):
@@ -691,9 +691,8 @@ class FacebookGraphAPI(View):
     def save_details(self,psid,message,response,sent_message_id,user_auto_message=True):
         user = MessengerUser.objects.filter(psid=psid)
         user_details = self.get_user_profile(psid)
-        extractor = UserMessageExtractor(message)
-
-        data = extractor.extract_all()
+        # extractor = UserMessageExtractor(message)
+        # data = extractor.extract_all()
 
         full_name = user_details.get('first_name','') +' '+ user_details.get('last_name','')
 
@@ -713,48 +712,48 @@ class FacebookGraphAPI(View):
             mid = sent_message_id
         )
 
-        if data['email']:
-            UserEmail.objects.create(
-                user = user,
-                message = user_message,
-                email = data['email']
-            )
-        if data['phone']:
-            UserPhone.objects.create(
-                user = user,
-                message = user_message,
-                phone = data['phone']
-            )
-        if data['location']:
-            UserAddress.objects.create(
-                user = user,
-                message = user_message,
-                address = data['location']
-            )
-        if data['budget']:
-            UserBudget.objects.create(
-                user = user,
-                message = user_message,
-                amount = data['budget']
-            )
-        if data['facebook_url']:
-            UserFacebookURL.objects.create(
-                user = user,
-                message = user_message,
-                url = data['facebook_url']
-            )
-        if data['website']:
-            UserWebsite.objects.create(
-                user= user,
-                message = user_message,
-                url = data['website']
-            )
-        if data['services']:
-            UserService.objects.create(
-                user= user,
-                message = user_message,
-                service = data['services']
-            )
+        # if data['email']:
+        #     UserEmail.objects.create(
+        #         user = user,
+        #         message = user_message,
+        #         email = data['email']
+        #     )
+        # if data['phone']:
+        #     UserPhone.objects.create(
+        #         user = user,
+        #         message = user_message,
+        #         phone = data['phone']
+        #     )
+        # if data['location']:
+        #     UserAddress.objects.create(
+        #         user = user,
+        #         message = user_message,
+        #         address = data['location']
+        #     )
+        # if data['budget']:
+        #     UserBudget.objects.create(
+        #         user = user,
+        #         message = user_message,
+        #         amount = data['budget']
+        #     )
+        # if data['facebook_url']:
+        #     UserFacebookURL.objects.create(
+        #         user = user,
+        #         message = user_message,
+        #         url = data['facebook_url']
+        #     )
+        # if data['website']:
+        #     UserWebsite.objects.create(
+        #         user= user,
+        #         message = user_message,
+        #         url = data['website']
+        #     )
+        # if data['services']:
+        #     UserService.objects.create(
+        #         user= user,
+        #         message = user_message,
+        #         service = data['services']
+        #     )
 
         user.save()
 
