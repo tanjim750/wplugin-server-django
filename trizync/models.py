@@ -24,7 +24,7 @@ class Project(models.Model):
     client = models.ForeignKey(Client,null=True, on_delete=models.SET_NULL)
     service = models.ForeignKey(Service,null=True, on_delete=models.SET_NULL)
     budget = models.FloatField(default=0)
-    start_date = models.DateField(auto_now=True)
+    start_date = models.DateField()
     deadline = models.DateField()
     created_at = models.DateField(auto_now_add=True)
 
