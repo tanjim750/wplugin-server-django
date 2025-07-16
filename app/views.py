@@ -44,7 +44,7 @@ def verify_license(request):
 
     try:
         # print(license_key,domain)
-        license = License.objects.get(key=license_key.strip(),domain=domain)
+        license = License.objects.get(key=license_key.strip(),domain=domain,is_active=True)
         # print("license",license)
 
         is_valid = license.is_valid()
@@ -89,7 +89,7 @@ class CreateParcel(View):
                     'error':'Please provide valid data'
                 },status=400) 
 
-            license = License.objects.filter(key=license_key,domain=domain)
+            license = License.objects.filter(key=license_key,domain=domain,is_active=True)
 
             if not license.exists() and not license.first().is_valid():
                 return JsonResponse({
@@ -169,7 +169,7 @@ class TrackParcel(View):
                     'error':'Please provide valid data'
                 },status=400)
 
-            license = License.objects.filter(key=license_key,domain=domain)
+            license = License.objects.filter(key=license_key,domain=domain,is_active=True)
 
             if not license.exists() and not license.first().is_valid():
                 return JsonResponse({
@@ -297,7 +297,7 @@ class FraudCheck(View):
                     'error':'Please provide valid data'
                 },status=400)
 
-            license = License.objects.filter(key=license_key,domain=domain)
+            license = License.objects.filter(key=license_key,domain=domain,is_active=True)
 
             if not license.exists() and not license.first().is_valid():
                 return JsonResponse({
@@ -417,7 +417,7 @@ class TriggerFbEventView(View):
                     'error':'Missing required data.'
                 },status=400)
 
-            license = License.objects.filter(key=license_key,domain=domain)
+            license = License.objects.filter(key=license_key,domain=domain,is_active=True)
             fb_event = FacebookEvent.objects.filter(text__iexact=event)
 
             if not license.exists() and not license.first().is_valid():
