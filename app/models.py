@@ -57,7 +57,7 @@ class FacebookEventRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.event_request}->{self.standard_event}"
+        return f"{self.customer.domain}:{self.event_request}->{self.standard_event}"
 
 class Customer(models.Model):
     name = models.CharField(max_length=255)
