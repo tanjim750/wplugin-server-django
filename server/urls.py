@@ -14,12 +14,14 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.urls import path
+from django.urls import path,include
 from django.contrib import admin
 from app.views import *
 
 from django.conf import settings
 from django.conf.urls.static import static
+
+from trizync.urls import urlpatterns as trizync_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,7 +32,8 @@ urlpatterns = [
     path('fraud-check/',FraudCheck.as_view()),
     path('send-event/',TriggerFbEventView.as_view()),
     path('fb-graph/',FacebookGraphAPI.as_view()),
-    path('get-events/',GetAllFacebookEvents.as_view())
+    path('get-events/',GetAllFacebookEvents.as_view()),
+    path('',include('trizync.urls')),
 ]
 
 urlpatterns += static(settings.MEDIA_URL,
