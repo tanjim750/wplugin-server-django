@@ -25,12 +25,12 @@ class SteadFastAPI:
 
         url = f"{self.base_url}/create_order"
         headers = {
-            'Api-Key': self.api_key,
-            'Secret-Key': self.secret_key,
+            'api-Key': self.api_key,
+            'secret-Key': self.secret_key,
             'Content-Type': 'application/json',
         }
         payload = {
-            'invoice': merchant_invoice_id,
+            'invoice': datetime.now().strftime('%y%m%d') + '-' + str(order.get('id')),
             'recipient_name': recipient_name,
             'recipient_phone': recipient_phone,
             'recipient_address': recipient_address,
@@ -39,6 +39,9 @@ class SteadFastAPI:
 
         try:
             response = requests.post(url, headers=headers, json=payload)
+            if response.status_code == 401:
+                return {'success': False, 'error': f'Invalid api key and secret. Try again.'}
+            
             response_data = response.json()
 
             if response.status_code == 200 and response_data.get('status') == 200:

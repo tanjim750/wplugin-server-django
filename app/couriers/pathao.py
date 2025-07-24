@@ -16,6 +16,7 @@ class PathaoAPI:
         self.token_expiry_at = None
 
         self.issue_token()
+        # print('....init')
 
     def issue_token(self):
         url = f"{self.base_url}/aladdin/api/v1/issue-token"
@@ -26,9 +27,10 @@ class PathaoAPI:
             'username': self.username,
             'password': self.password,
         }
-
+        print(payload)
         try:
             response = requests.post(url, json=payload, timeout=20)
+            # print(response.status_code)
             # response.raise_for_status()
             data = response.json()
             if 'access_token' in data and 'expires_in' in data:
@@ -38,10 +40,12 @@ class PathaoAPI:
                 now = datetime.now()
                 expiry_at = now + timedelta(seconds=int(expires))
                 
+                print(access_token,expiry_at)
                 self.access_token = access_token
                 self.token_expiry_at = expiry_at
             
-        except:
+        except Exception as e:
+            # print(e)
             pass
 
     def get_first_store(self):
@@ -76,10 +80,12 @@ class PathaoAPI:
             return None
 
     def create_parcel(self, order):
-        print("create................")
-        now = datetime.now()
-        if now > self.token_expiry_at:
-            self.issue_token()
+        # print("create................")
+        if not self.access_token:
+            return {'success':False, 'error': 'Invalid credentials. Try again.'}
+        # now = datetime.now()
+        # if now > self.token_expiry_at:
+        #     self.issue_token()
 
     
         store = self.get_first_store()
