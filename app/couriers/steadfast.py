@@ -1,14 +1,130 @@
 import requests
 from urllib.parse import urlencode
 from datetime import datetime
-
+from bs4 import BeautifulSoup
 import traceback
 
+
+login_user = {
+    'session': None,  # store logged-in session
+    'logged_in': False
+}
+
 class SteadFastAPI:
-    def __init__(self, api_key, secret_key):
+    def __init__(self, api_key=None, secret_key=None,email=None,password=None):
         self.api_key = api_key
         self.secret_key = secret_key
+        self.email = email
+        self.password = password
         self.base_url = 'https://portal.packzy.com/api/v1'
+
+    def login(self):
+        """Login to Steadfast and store session."""
+        try:
+            session = requests.Session()
+
+            # 1. Get login page
+            login_page = session.get(f"https://steadfast.com.bd/login")
+            soup = BeautifulSoup(login_page.text, "html.parser")
+
+            # 2. Extract CSRF token
+            token_tag = soup.find("input", {"name": "_token"})
+            if not token_tag:
+                print("[ERROR] Steadfast Could not find CSRF token on login page.")
+                return False
+            token = token_tag["value"]
+
+            # 3. Prepare payload
+            payload = {
+                "_token": token,
+                "email": self.email,
+                "password": self.password,
+                "remember": "on"
+            }
+
+            # 4. Send login POST request
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                              "AppleWebKit/537.36 (KHTML, like Gecko) "
+                              "Chrome/138.0.0.0 Safari/537.36",
+                "Referer": f"https://steadfast.com.bd/login"
+            }
+
+            login_response = session.post(f"https://steadfast.com.bd/login", data=payload, headers=headers)
+
+            if "dashboard" in login_response.url.lower():
+                print("[INFO] Steadfast login successful.")
+                login_user['session'] = session
+                login_user['logged_in'] = True
+                return True
+            else:
+                print("[ERROR] Steadfast Login failed. Check email/password.")
+                return False
+
+        except Exception as e:
+            print(f"[ERROR] Steadfast Login exception: {e}")
+            return False
+
+    def courier_ratio(self, phone_number):
+        """Get consignment data by phone number."""
+        if not login_user['logged_in'] or not login_user['session']:
+            print("[INFO] Steadfast No active session. Logging in...")
+            if not self.login():
+                return {
+                "total_parcel": 0,
+                "success_parcel": 0,
+                "cancelled_parcel": 0,
+                "success_ratio": 0
+            }
+
+        try:
+            url = f"https://steadfast.com.bd/user/consignment/getbyphone/{phone_number}"
+            resp = login_user['session'].get(url)
+
+            if resp.status_code == 401:  # Session expired
+                print("[WARN] Steadfast Session expired. Re-logging in...")
+                if self.login():
+                    return self.courier_ratio(phone_number)
+                else:
+                    return {
+                "total_parcel": 0,
+                "success_parcel": 0,
+                "cancelled_parcel": 0,
+                "success_ratio": 0
+            }
+
+            if resp.status_code == 200:
+                data = resp.json()
+                print("[INFO] steadfast",data)
+
+                total_parcel = data.get("total_delivered", 0) + data.get("total_cancelled", 0)
+                success_parcel = data.get("total_delivered", 0)
+                cancelled_parcel = data.get("total_cancelled", 0)
+                success_ratio = round((success_parcel / total_parcel) * 100, 2) if total_parcel > 0 else 0
+
+                return {
+                    "total_parcel": total_parcel,
+                    "success_parcel": success_parcel,
+                    "cancelled_parcel": cancelled_parcel,
+                    "success_ratio": success_ratio
+                }
+            else:
+                print(f"[ERROR] Steadfast Failed to fetch data. Status: {resp.status_code}")
+                return {
+                "total_parcel": 0,
+                "success_parcel": 0,
+                "cancelled_parcel": 0,
+                "success_ratio": 0
+            }
+
+        except Exception as e:
+            print(f"[ERROR] Steadfast Courier ratio exception: {e}")
+            return {
+                "total_parcel": 0,
+                "success_parcel": 0,
+                "cancelled_parcel": 0,
+                "success_ratio": 0
+            }
 
     def create_parcel(self, order):
         if not order:

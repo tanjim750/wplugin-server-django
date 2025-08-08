@@ -2,10 +2,109 @@ import requests
 import json
 from datetime import datetime
 
+login_user = {
+    'session': None, # request login session
+    'token': ''
+}
 class RedxAPI:
-    def __init__(self, api_token, test_mode=True):
+    def __init__(self, api_token=None, test_mode=True,username=None,password=None):
         self.api_token = api_token
+        self.username = username
+        self.password = password
         self.base_url = 'https://sandbox.redx.com.bd/v1.0.0-beta' if test_mode else 'https://openapi.redx.com.bd/v1.0.0-beta'
+
+    
+    def login(self):
+        """Login and store session + token."""
+        login_url = "https://api.redx.com.bd/v4/auth/login"
+        payload = {
+            "phone": self.username,
+            "password": self.password
+        }
+        headers = {
+            "accept": "application/json, text/plain, */*",
+            "content-type": "application/json",
+            "origin": "https://redx.com.bd",
+            "referer": "https://redx.com.bd/",
+            "user-agent": "Mozilla/5.0"
+        }
+
+        session = requests.Session()
+        resp = session.post(login_url, json=payload, headers=headers)
+
+        if resp.status_code == 200:
+            data = resp.json()
+            token = data["data"]["accessToken"]
+            login_user['session'] = session
+            login_user['token'] = token
+            print("[INFO] Redx Login successful")
+            return True
+        else:
+            print("[ERROR] Redx Login failed:", resp.text)
+            return False
+
+    def courier_ratio(self, phone_number):
+        """Get customer-success-return-rate, retry login if unauthorized."""
+        if not login_user['session'] or not login_user['token']:
+            print("[INFO] Redx No active session, logging in...")
+            if not self.login():
+                return {
+                "total_parcel": 0,
+                "success_parcel": 0,
+                "cancelled_parcel": 0,
+                "success_ratio": 0
+            }
+
+        url = "https://redx.com.bd/api/redx_se/admin/parcel/customer-success-return-rate"
+        params = {"phoneNumber": phone_number}
+        headers = {
+            "accept": "application/json, text/plain, */*",
+            "user-agent": "Mozilla/5.0",
+            "referer": "https://redx.com.bd/create-parcel/",
+            "x-access-token": f"Bearer {login_user['token']}"
+        }
+
+        resp = login_user['session'].get(url, headers=headers, params=params)
+        print("[info] redx",resp.json())
+        if resp.status_code == 401:
+            print("[WARN] Session expired, re-logging in...")
+            if self.login():
+                return self.courier_ratio(phone_number)
+            else:
+                return {
+                "total_parcel": 0,
+                "success_parcel": 0,
+                "cancelled_parcel": 0,
+                "success_ratio": 0
+            }
+
+        if resp.status_code == 200:
+            data = resp.json().get("data", {})
+            # Convert string numbers to integers
+            total_parcel = int(data.get("totalParcels", "0"))
+            success_parcel = int(data.get("deliveredParcels", "0"))
+            cancelled_parcel = total_parcel - success_parcel
+            try:
+                success_ratio = round((success_parcel / total_parcel) * 100, 2) if total_parcel > 0 else 0
+            except ZeroDivisionError:
+                success_ratio = 0
+
+            # Return in required format
+            return {
+                "total_parcel": total_parcel,
+                "success_parcel": success_parcel,
+                "cancelled_parcel": cancelled_parcel,
+                "success_ratio": success_ratio
+            }
+        else:
+            print("[ERROR] Redx Failed to get courier ratio.")
+            return {
+                "total_parcel": 0,
+                "success_parcel": 0,
+                "cancelled_parcel": 0,
+                "success_ratio": 0
+            }
+
 
     def create_parcel(self, order):
         if not order:

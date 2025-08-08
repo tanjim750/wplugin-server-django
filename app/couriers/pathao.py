@@ -1,7 +1,14 @@
 import requests
-import logging
+import logging,time
 from datetime import datetime, timedelta
 
+
+login_user = {
+    "token": "",
+    "expires_in": 0,
+    "refresh_token": "",
+    "token_acquired_at": 0
+}
 
 class PathaoAPI:
     def __init__(self, client_id, client_secret, username, password,test_mode=True):
@@ -17,6 +24,99 @@ class PathaoAPI:
 
         self.issue_token()
         # print('....init')
+
+    def login(self):
+        """Login to Pathao API and store token, expiry, and refresh token."""
+        try:
+            url = f"{self.base_url}/aladdin/api/v1/external/login"
+            payload = {
+                "client_id": self.client_id,
+                "client_secret": self.client_secret
+            }
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+
+            session = requests.Session()
+            resp = session.post(url, json=payload, headers=headers)
+
+            if resp.status_code == 200:
+                data = resp.json()
+
+                token = data.get("access_token")
+                if token:
+                    login_user["token"] = token
+                    login_user["expires_in"] = data.get("expires_in", 0)
+                    login_user["refresh_token"] = data.get("refresh_token", "")
+                    login_user["token_acquired_at"] = time.time()
+
+                    print("[SUCCESS] Pathao login successful.")
+                    return True
+                else:
+                    print("[ERROR] Pathao No token in response.")
+                    return False
+            else:
+                print(f"[ERROR] Pathao Login failed. Status: {resp.status_code}, Response: {resp.text}")
+                return False
+
+        except Exception as e:
+            print(f"[ERROR] Pathao Exception during Pathao login: {e}")
+            return False
+        
+    def courier_ratio(self, phone):
+        """Fetch Pathao courier success ratio for a given phone number."""
+        try:
+            # Ensure we have a valid token, otherwise login
+            if not login_user["token"] or (time.time() - login_user["token_acquired_at"] > login_user["expires_in"]):
+                print("[INFO] Pathao Token missing or expired, logging in again...")
+                if not self.login():
+                    return {
+                "total_parcel": 0,
+                "success_parcel": 0,
+                "cancelled_parcel": 0,
+                "success_ratio": 0
+            }
+
+            url = "https://merchant.pathao.com/api/v1/user/success"
+            payload = {"phone": phone}
+            headers = {
+                "Authorization": f"Bearer {login_user['token']}",
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            }
+
+            resp = requests.post(url, json=payload, headers=headers)
+
+            if resp.status_code == 200:
+                data = resp.json().get("data", {})
+
+                # Convert to requested format
+                result = {
+                    "total_parcel": data.get("customer", {}).get("total_delivery", 0),
+                    "success_parcel": data.get("customer", {}).get("successful_delivery", 0),
+                    "cancelled_parcel": data.get("customer", {}).get("total_delivery", 0) - data.get("customer", {}).get("successful_delivery", 0),
+                    "success_ratio": data.get("success_rate", 0)
+                }
+                return result
+            else:
+                print(f"[ERROR] Pathao Failed to get courier ratio. Status: {resp.status_code}, Response: {resp.text}")
+                return {
+                "total_parcel": 0,
+                "success_parcel": 0,
+                "cancelled_parcel": 0,
+                "success_ratio": 0
+            }
+
+        except Exception as e:
+            print(f"[ERROR] Pathao Exception in courier_ratio: {e}")
+            return {
+                "total_parcel": 0,
+                "success_parcel": 0,
+                "cancelled_parcel": 0,
+                "success_ratio": 0
+            }
+
 
     def issue_token(self):
         url = f"{self.base_url}/aladdin/api/v1/issue-token"

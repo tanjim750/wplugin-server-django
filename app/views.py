@@ -328,8 +328,73 @@ class FraudCheck(View):
         )
 
         return
-        
+    
     def fetch_courier_stats(self,phone_number):
+        formatted_phone:str = phone_number.strip()
+        bd_phone = formatted_phone.replace('+88','',1) if formatted_phone.startswith('+88') else formatted_phone
+
+        defalut_value = {
+                "total_parcel": 0,
+                "success_parcel": 0,
+                "cancelled_parcel": 0,
+                "success_ratio": 0
+            }
+        
+        stats = {}
+
+        pathao = PathaoAPI('JxboZ9Lagw','tm7SdZhZqqXAqP388UNGXlJqte2J0MKq38udKM4b',None,None,False)
+        steadfast = SteadFastAPI(email='abubokortanjim@gmail.com',password='Abcd1234@')
+        redx = RedxAPI(username='8801631596698',password='abcd1234@')
+
+        # Thread worker functions
+        def run_pathao():
+            try:
+                stats['pathao'] = pathao.courier_ratio(bd_phone)
+            except Exception as e:
+                stats['pathao'] = defalut_value
+
+        def run_steadfast():
+            try:
+                stats['steadfast'] = steadfast.courier_ratio(bd_phone)
+            except Exception as e:
+                stats['steadfast'] = defalut_value
+
+        def run_redx():
+            try:
+                stats['redx'] = redx.courier_ratio(bd_phone)
+            except Exception as e:
+                stats['redx'] = defalut_value
+
+        # Create threads
+        t1 = threading.Thread(target=run_pathao)
+        t2 = threading.Thread(target=run_steadfast)
+        t3 = threading.Thread(target=run_redx)
+
+        # Start threads
+        t1.start()
+        t2.start()
+        t3.start()
+
+        # Wait for all to finish
+        t1.join()
+        t2.join()
+        t3.join()
+
+        total_parcel = stats['pathao']['total_parcel'] + stats['redx']['total_parcel'] + stats['steadfast']['total_parcel']
+        success_parcel = stats['pathao']['success_parcel'] + stats['redx']['success_parcel'] + stats['steadfast']['success_parcel']
+        cancelled_parcel = stats['pathao']['cancelled_parcel'] + stats['redx']['cancelled_parcel'] + stats['steadfast']['cancelled_parcel']
+        success_ratio = round((success_parcel / total_parcel) * 100, 2) if total_parcel > 0 else 0
+
+        stats['summery'] = {
+            'total_parcel':total_parcel,
+            'success_parcel':success_parcel,
+            'cancelled_parcel':cancelled_parcel,
+            'success_ratio':success_ratio
+        }
+        return stats
+
+
+    def fetch_courier_stats_bdCourier(self,phone_number):
         formatted_phone:str = phone_number.strip()
         bd_phone = formatted_phone.replace('+88','',1) if formatted_phone.startswith('+88') else formatted_phone
 
