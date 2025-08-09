@@ -385,7 +385,7 @@ class FraudCheck(View):
         cancelled_parcel = stats['pathao']['cancelled_parcel'] + stats['redx']['cancelled_parcel'] + stats['steadfast']['cancelled_parcel']
         success_ratio = round((success_parcel / total_parcel) * 100, 2) if total_parcel > 0 else 0
 
-        stats['summery'] = {
+        stats['summary'] = {
             'total_parcel':total_parcel,
             'success_parcel':success_parcel,
             'cancelled_parcel':cancelled_parcel,
